@@ -1,0 +1,30 @@
+{
+    "root": "A:/Users/SSY/Documents/GitHub/Invariant-Information-Clustering",
+    "program": "train_classifier.py",
+    "git": {
+        "remote": "https://github.com/ZombaSY/iic-1.git",
+        "commit": "f7278317a4109b74fc771b684268cbed528a022d"
+    },
+    "email": "tjxhwl@gmail.com",
+    "codePath": "train_classifier.py",
+    "startedAt": "2020-07-09T12:27:47.560131",
+    "host": "DESKTOP-JNEQAFG",
+    "username": "SSY",
+    "executable": "A:\\Users\\SSY\\anaconda3\\envs\\pytorch-dev-latest\\python.exe",
+    "os": "Windows-10-10.0.18362-SP0",
+    "python": "3.7.6",
+    "gpu": "GeForce RTX 2070",
+    "gpu_count": 1,
+    "cpu_count": 12,
+    "args": [
+        "--config",
+        "configs/iic/mnist.yaml",
+        "--display",
+        "10"
+    ],
+    "state": "running",
+    "jobType": null,
+    "mode": "run",
+    "project": "bald-classification",
+    "heartbeatAt": "2020-07-09T12:28:37.165457"
+}

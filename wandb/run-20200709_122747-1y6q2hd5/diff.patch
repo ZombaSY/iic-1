@@ -1,0 +1,152 @@
+diff --git a/configs/iic/mnist.yaml b/configs/iic/mnist.yaml
+index ad1380e..ec3e801 100644
+--- a/configs/iic/mnist.yaml
++++ b/configs/iic/mnist.yaml
+@@ -1,5 +1,5 @@
+-batchsize: 64
+-epochs: 10
++batchsize: 512
++epochs: 200
+ 
+ dataset:
+   name: mnist_no_trans
+diff --git a/datasets/mnist.py b/datasets/mnist.py
+index f6c305f..2c9954b 100644
+--- a/datasets/mnist.py
++++ b/datasets/mnist.py
+@@ -1,7 +1,7 @@
+ import torchvision.transforms as transforms
+ 
+ train_transform = transforms.Compose([
+-    transforms.RandomRotation((-36.0, 36.0), fill=(0,)),
++    transforms.RandomRotation((-36.0, 36.0)),
+     transforms.RandomResizedCrop((28, 28), scale=(0.85, 1.15), ratio=(3.0/40, 4.0/3.0)),
+     transforms.RandomHorizontalFlip(),
+     transforms.ToTensor(),
+diff --git a/iic/config.py b/iic/config.py
+index 5d14bbc..dc32572 100644
+--- a/iic/config.py
++++ b/iic/config.py
+@@ -58,6 +58,7 @@ def config(args=None):
+     """
+ 
+     """ config """
++
+     parser = argparse.ArgumentParser(description='configuration switches')
+     parser.add_argument('-n', '--name', type=str, default=None)
+     parser.add_argument('-d', '--device', type=str)
+@@ -141,7 +142,7 @@ def config(args=None):
+ 
+     """ read the config file """
+     if args.config is not None:
+-        with Path(args.config).open() as f:
++        with open(args.config) as f:
+             conf = yaml.load(f, Loader=loader)
+             conf = flatten(conf)
+             args = set_if_not_set(args, conf)
+@@ -162,6 +163,7 @@ def config(args=None):
+     """ default to cuda:0 if device is not set"""
+     if args.device is None:
+         args.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
++        print('CUDA available :', torch.cuda.is_available())
+     else:
+         args.device = torch.device(args.device)
+ 
+diff --git a/train_classifier.py b/train_classifier.py
+index b6f52ff..f8a94f4 100644
+--- a/train_classifier.py
++++ b/train_classifier.py
+@@ -7,7 +7,6 @@ from iic.models import mnn
+ from iic.models.layerbuilder import LayerMetaData
+ from iic import config, it
+ from datasets import package
+-from tensorboardX import SummaryWriter
+ import torch.backends.cudnn
+ import numpy as np
+ import torch.nn.functional as F
+@@ -19,6 +18,10 @@ from iic.utils.text import text_patch
+ import pygame
+ import torch.onnx
+ 
++import Digo
++
++import os
++
+ global_step = 0.0
+ 
+ 
+@@ -129,7 +132,9 @@ def main(args):
+             label_text = torch.cat(label_text, dim=1).to(args.device)
+             panel = torch.cat((label_text, show(x, y), show(x_t, y)), dim=2)
+ 
+-            self.viewer.render(panel)
++            # Render train image
++            if global_step % args.display == 0:
++                self.viewer.render(panel)
+ 
+             self.total += target.size(0)
+             self.correct += predicted.eq(target.cpu()).sum().item()
+@@ -142,6 +147,7 @@ def main(args):
+ 
+             max_entropy_P = it.entropy(torch.ones_like(P) / P.numel())
+             max_entropy_y = it.entropy(torch.ones(y.size(1)) / y.size(1))
++
+             wandb_log = {
+                 f'{self.type}_loss': loss.item(),
+                 f'{self.type}_accuracy': accuracy,
+@@ -150,9 +156,12 @@ def main(args):
+                 f'{self.type}_entropy_yt (max: {max_entropy_y:.2f})': torch.mean(
+                     it.entropy(F.softmax(y_t), dim=1)).item()
+             }
++
+             if self.batches == self.batch_step:
+                 wandb_log[f'{self.type}_final_results_panel'] = wandb.Image(panel)
++
+             wandb.log(wandb_log)
++
+             global_step += 1
+             return accuracy, self.guesser, panel
+ 
+@@ -169,6 +178,7 @@ def main(args):
+               f'test accuracy {test_accuracy:.4f} '
+               f'train accuracy {train_accuracy:.4f}{Style.RESET_ALL}')
+         wandb.log({'epoch_test_accuracy': test_accuracy})
++        Digo.log({'epoch_test_accuracy': test_accuracy})
+         return ave_precis, best_precision
+ 
+     def nop(args, x, target):
+@@ -186,7 +196,6 @@ def main(args):
+ 
+     """ variables """
+     run_dir = f'data/models/classifiers/{args.dataset_name}/{args.model_name}/run_{args.run_id}'
+-    writer = SummaryWriter(log_dir=run_dir)
+     global_step = 0
+     ave_precision = 0.0
+     best_precision = 0.0
+@@ -323,8 +332,13 @@ def main(args):
+                     'optimizer': optim.state_dict(),
+                     'amp': amp.state_dict()
+                 }
++
++                if not os.path.exists(run_dir):
++                    os.makedirs(run_dir)
++
+                 torch.save(checkpoint, run_dir + '/checkpoint_amp.pt')
+                 # torch.save(classifier.state_dict(), run_dir + '/checkpoint')
++
+         with torch.no_grad():
+             batch = Batch('test', test, testset)
+             for data in batch:
+@@ -366,7 +380,11 @@ if __name__ == '__main__':
+     """ configuration """
+     args = config.config()
+     pygame.init()
+-    wandb.init(project='iic', name=args.name)
++    wandb.init(project='bald-classification', name=args.name)
+     wandb.config.update(args)
++    Digo.init(api_key='qpqD6cHYvGG2XNHeGlHog8360T8uWHya',
++              project_name='HumanSegmantation',
++              workspace_name='Yunsang')
++
+     torch.cuda.set_device(args.device)
+     main(args)

@@ -58,6 +58,7 @@ def config(args=None):
     """
 
     """ config """
+
     parser = argparse.ArgumentParser(description='configuration switches')
     parser.add_argument('-n', '--name', type=str, default=None)
     parser.add_argument('-d', '--device', type=str)
@@ -141,7 +142,7 @@ def config(args=None):
 
     """ read the config file """
     if args.config is not None:
-        with Path(args.config).open() as f:
+        with open(args.config) as f:
             conf = yaml.load(f, Loader=loader)
             conf = flatten(conf)
             args = set_if_not_set(args, conf)
@@ -162,6 +163,7 @@ def config(args=None):
     """ default to cuda:0 if device is not set"""
     if args.device is None:
         args.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        print('CUDA available :', torch.cuda.is_available())
     else:
         args.device = torch.device(args.device)
 
