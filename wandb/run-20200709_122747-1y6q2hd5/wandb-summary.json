@@ -1,1 +1,0 @@
-{"_step": 32, "train_entropy_P_(max: 6.51)": 3.638808250427246, "train_accuracy": 9.937263257575758, "train_entropy_y_(max: 3.32)": 0.17162983119487762, "_timestamp": 1594297719.722368, "_runtime": 55.64523649215698, "train_entropy_yt (max: 3.32)": 0.26271694898605347, "train_loss": -1.0330955982208252}
